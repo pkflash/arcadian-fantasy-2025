@@ -133,7 +133,112 @@ a:active {
     padding: 20px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     width: 300px;
+    max-height: 1700px;
 }
+
+/* CSS for create page */
+
+.budget-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    margin-bottom: 15%;
+}
+
+.budget-box .amount {
+    display: flex;
+    justify-content: center;
+    margin: 10px;
+}
+
+.player-count {
+    margin-bottom: 20px;
+}
+
+.bonus {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.bonus .label {
+    font-weight: bold;
+}
+
+.bonus select {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+}
+
+.team-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.player-card {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 20px;
+    background-color: rgb(31, 35, 46);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+}
+
+.player-card .label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: rgb(255, 255, 255);
+}
+
+.player-card .status {
+    color: #888;
+}
+
+.cost-list {
+    max-height: 50%;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.cost-card {
+    background-color: rgb(31, 35, 46);
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    width: 80%;
+}
+
+.cost-card:hover {
+    background-color: rgb(45, 50, 62);
+}
+
+.cost-card .name {
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.cost-card .info {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 10px;
+}
+
+.cost-badge {
+    display: inline-block;
+    background-color: #ff6b6b;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 14px;
+}
+/* Create End */
 
 .leaderboard-container {
     display: flex;

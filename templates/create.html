@@ -17,12 +17,259 @@
         <h3>
             2. Set Roster
         </h3>
-            <p>Select 12 players from the list of available players. The combined cost of all players on your roster cannot exceed $1200.</p>
+        <p>Select 12 players from the list of available players. The combined cost of all players on your roster cannot exceed $1200.</p>
+        <div class="team-slots">
+            <!-- Make 12 slots for all players -->
+            <div class="player-card">
+                <div class="label">Player 1</div>
+                <div class="status">Empty</div>
+            </div>
 
+            <div class="player-card">
+                <div class="label">Player 2</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 3</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 4</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 5</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 6</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 7</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 8</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 9</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 10</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 11</div>
+                <div class="status">Empty</div>
+            </div>
+
+            <div class="player-card">
+                <div class="label">Player 12</div>
+                <div class="status">Empty</div>
+            </div>
+        </div>
+        <h3>
+            3. Bonus Questions
+        </h3>
+        <div class="bonus">
+            <label>Bonus 1 - 25 points</label>
+            <p>How many 3 stocks will occur in top 8?</p>
+            <select>
+                <option>0-5</option>
+                <option>6-10</option>
+                <option>10-15</option>
+                <option>15-20</option>
+                <option>21+</option>
+            </select>
+        </div>
+        <div class="bonus">
+            <label>Bonus 2 - 25 points</label>
+            <p>How many game 5's will occur in top 8?</p>
+            <select>
+                <option>0</option>
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+                <option>11</option>
+            </select>
+        </div>
+
+        <div class="bonus">
+            <label>Bonus 3 - 25 points</label>
+            <p>How many unique characters will there be in top 8?</p>
+            <select>
+                <option>0</option>
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+                <option>11</option>
+                <option>12</option>
+            </select>
+        </div>
+
+        <div class="bonus">
+            <label>Bonus 4 - 25 points</label>
+            <p>How many individual games will the winner of singles lose throughout the event?</p>
+            <select>
+                <option>0-5</option>
+                <option>6-10</option>
+                <option>10-15</option>
+                <option>15-20</option>
+                <option>20-25</option>
+                <option>26+</option>
+            </select>
+        </div>
+        <br><br><br><br><br><br>
+        <h1>
+            <a class="button grayButton" href="{{ url_for('home') }}">Register Team</a>
+        </h1>
     </div>
 
-    <div class="section" style="width: 25%">
-        <h2>AVAILABLE ENTRANTS</h2>
+    <div class="section" style="width: 25%;">
+        <h2>Players</h2>
+        <h3>
+        <div class="budget-box">
+            <h3>Remaining Budget</h3>
+            <div class="amount">
+                <h3>1200</h3>
+            </div>
+        </div>
+
+        <div class="cost-list">
+            <button class="cost-card">
+                <div class="name">Nessboy12Oatmeal</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">250</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">240</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            <button class="cost-card">
+                <div class="name">Lui$</div><br>
+                <div class="info">Seed: 1</div><br>
+                <div class="cost-badge">230</div>
+            </button>
+            
+        </div>
+        </h3>
     </div>
 </div>
 
