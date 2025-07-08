@@ -116,6 +116,7 @@ a:active {
 }
 
 
+
 .flex-container {
     display: flex;
     flex-wrap: wrap;
@@ -127,13 +128,60 @@ a:active {
     box-sizing: border-box; /* Include padding/border in width calculations */
 }
 
-.section {
-    background: rgb(31, 35, 46);;
+
+
+/* CSS for index */
+.link-button {
+  display: inline;
+  padding: 0px;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: currentColor;
+}
+
+.link-button:hover {
+    transition-duration: 0.2s;
+    color:#777;
+}
+
+.leaderboard-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; /* Center the items horizontally */
+    width: 900px;
+    height: 250px;
+    padding: 4px;
+    overflow-y: auto;
+    background-color:rgb(31, 35, 46);
+    border: 0px solid #e7e7e7;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -40%);
+}
+
+
+.team-view {
+    display: grid;
+    grid-template-columns: 2fr;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+
+}
+
+.team-player {
+    border: 2px dashed #ccc;
     border-radius: 10px;
     padding: 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    width: 300px;
-    max-height: 1700px;
+    background-color: rgb(31, 35, 46);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    width: 80%
 }
 
 /* CSS for create page */
@@ -169,6 +217,15 @@ a:active {
     width: 100%;
     padding: 5px;
     margin-top: 5px;
+}
+
+.section {
+    background: rgb(31, 35, 46);;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 300px;
+    max-height: 1700px;
 }
 
 .team-slots {
@@ -239,25 +296,6 @@ a:active {
     font-size: 14px;
 }
 /* Create End */
-
-.leaderboard-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center; /* Center the items horizontally */
-    width: 900px;
-    height: 250px;
-    padding: 4px;
-    overflow-y: auto;
-    background-color:rgb(31, 35, 46);
-    border: 0px solid #e7e7e7;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -40%);
-}
 
 .leaderboard {
    display: flex;
