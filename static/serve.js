@@ -90,3 +90,22 @@ document.addEventListener("click", function(event) {
     sideBar.remove();
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const playerButtons = decodeURIComponent.querySelectorAll('.select-player');
+    const teamSlots = document.querySelectorAll('.team-player .status');
+
+    playerButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const playerName = button.querySelector('.name').innerText;
+
+            for (let slot of teamSlots) {
+                if (slot.innerText === "Empty") {
+                    slot.innerText = playerName;
+                    break;
+                }
+            }
+        })    
+    })
+})
