@@ -107,17 +107,23 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const playerName = button.querySelector('.name').innerText; // 
             const playerCost = button.querySelector('.cost-badge').innerText;
+
+            // Convert budget text and player cost text to int, and deduct money accordingly
+            let budgetInt = parseInt(budget.innerText);
+            let costInt = parseInt(playerCost);
+            let newBudget = budgetInt - costInt;
+
+            // Don't allow the addition if funds are insufficient
+            if (newBudget < 0){
+                return;
+            }
             for (let slot of teamSlots) {
                 const status = slot.querySelector('.status');
                 const label = slot.querySelector('.label');
+
                 if (status.innerText === "Empty") {
                     status.innerText = playerCost;
                     label.innerText = playerName;
-
-                    // Convert budget text and player cost text to int, and deduct money accordingly
-                    let budgetInt = parseInt(budget.innerText);
-                    let costInt = parseInt(playerCost);
-                    let newBudget = budgetInt - costInt;
                     budget.innerText = newBudget.toString();
                     break;
                 }
