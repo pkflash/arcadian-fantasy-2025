@@ -103,6 +103,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let budget = document.querySelector('.budget-box .amount'); // Load initial budget amount when content loads
     console.log(budget);
 
+    const searchInput = document.getElementById('player-search');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const query = searchInput.value.toLowerCase();
+            document.querySelectorAll('.cost-card').forEach(card => {
+                const playerName = card.querySelector('.name').innerText.toLowerCase();
+                if (playerName.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+
     playerButtons.forEach(button => {
         button.addEventListener('click', () => {
             const playerName = button.querySelector('.name').innerText; // 

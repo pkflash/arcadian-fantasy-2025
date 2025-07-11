@@ -496,3 +496,7 @@ a:active {
     margin: 5px 0;
     display: block;
 }
+
+.input {
+    padding: 1%;
+}
