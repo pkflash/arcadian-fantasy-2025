@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerButtons = document.querySelectorAll('.cost-card'); // Refers to player buttons on the right
     const teamSlots = document.querySelectorAll('.team-player'); // Refers to team slots on the left
     let budget = document.querySelector('.budget-box .amount'); // Load initial budget amount when content loads
-    console.log(budget);
 
     const searchInput = document.getElementById('player-search');
 
@@ -111,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.cost-card').forEach(card => {
                 const playerName = card.querySelector('.name').innerText.toLowerCase();
                 if (playerName.includes(query)) {
-                    card.style.display = 'block';
+                    card.style.display = 'inline-block';
                 } else {
                     card.style.display = 'none';
                 }
