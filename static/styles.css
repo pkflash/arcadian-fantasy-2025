@@ -184,6 +184,10 @@ a:active {
     width: 80%
 }
 
+.team-player .status {
+    color:#777;
+}
+
 /* CSS for create page */
 
 .budget-box {
