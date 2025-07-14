@@ -135,6 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (remainingMoney - costInt < 0){
                         return;
                     }
+
+                    // Don't allow the addition if name already exists on the team
+                    for (let slot of teamSlots){
+                        const label = slot.querySelector('.label');
+                        if (label.innerText === playerName){
+                            return;
+                        }
+                    }
                     remainingMoney = remainingMoney - costInt;
 
                     for (let slot of teamSlots) {
