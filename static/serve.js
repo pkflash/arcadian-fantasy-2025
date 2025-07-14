@@ -1,15 +1,3 @@
-// import { GraphQLClient, gql } from 'graphql-request';
-
-const token = "ea00668ca82bce5c59a8052edd1ea21d";
-
-fetch('https://api.start.gg/gql/alpha', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-
 const button1 = document.getElementById('button-team1');
 const TOTAL_COST = 1200;
 let remainingMoney = TOTAL_COST;
