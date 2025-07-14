@@ -1,7 +1,7 @@
 const button1 = document.getElementById('button-team1');
 const TOTAL_COST = 1200;
 let remainingMoney = TOTAL_COST;
-
+const createButton = document.getElementById('Register');
 // Button1 check only passes on index page
 if (button1){
     button1.addEventListener('click', function() {
@@ -171,6 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             })
+        });
+    }
+
+    if (createButton){
+        createButton.addEventListener('click', () => {
+            // Collect all information and send request to Flask for Firestore write
         });
     }
     
