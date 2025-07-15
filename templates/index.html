@@ -6,8 +6,13 @@
     <h1>norcal arcadian 2025 fantasy! :)</h1>
     {% block body %}
     <h2>
-        <a class="button grayButton" href="{{ url_for('create') }}">create team</a>
-        <a class="button grayButton" href="">logout</a>
+        {% if session.user_id %}
+            <a class="button grayButton" href="{{ url_for('create') }}">create team</a>
+            <a class="button grayButton" href="{{ url_for('logout') }}">logout</a>
+        {% else %}
+            <a class="button grayButton" href="{{ url_for('login') }}">login</a>
+            <a class="button grayButton" href="{{ url_for('register') }}">register</a>
+        {% endif %}
     </h2>
     <h2>leaderboard</h2>
     <div class="flex-container">
@@ -18,23 +23,15 @@
                     <th style="width: 30%">Player</th>
                     <th style="width: 40%">Team</th>
                     <th style="width: 20%">Score</th>
-
                 </tr>
+                {% for entry in leaderboard %}
                 <tr>
-                    <td>1</td>
-                    <td>gang bang alan wang</td>
-                    <td><button class="link-button" id="button-team1">gang bangers of all time</button></td>
+                    <td>{{ entry.rank }}</td>
+                    <td>{{ entry.user_id }}</td>
+                    <td><button class="link-button" id="button-team{{ loop.index }}">{{ entry.team_name }}</button></td>
+                    <td>{{ entry.points }}</td>
                 </tr>
-                <tr>
-                    <td>2</td>
-                    <td>Francisco Chang</td>
-                    <td>Mexico</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>Francisco Chang</td>
-                    <td>Mexico</td>
-                </tr>
+                {% endfor %}
             </table>
         </div>
         <div id="new">
