@@ -9,8 +9,6 @@ import pandas as pd
 from datetime import datetime
 import math
 from functools import wraps
-<<<<<<< Updated upstream
-=======
 import hashlib
 from dotenv import load_dotenv
 from requests_oauthlib import OAuth2Session
@@ -25,7 +23,6 @@ load_dotenv()
 # STARTGG_TOKEN_URL = 'https://start.gg/oauth/token'
 STARTGG_API_URL = 'https://api.start.gg/gql/alpha'
 STARTGG_API_TOKEN = os.getenv('STARTGG_API_TOKEN')
->>>>>>> Stashed changes
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
@@ -275,10 +272,7 @@ def get_leaderboard():
     
     return jsonify(leaderboard)
 
-<<<<<<< Updated upstream
-=======
 # Remove /startgg/login and /startgg/callback routes and get_startgg_user_info
 
->>>>>>> Stashed changes
 if __name__ == '__main__':
     app.run(debug=True)
