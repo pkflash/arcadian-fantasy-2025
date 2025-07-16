@@ -9,6 +9,23 @@ import pandas as pd
 from datetime import datetime
 import math
 from functools import wraps
+<<<<<<< Updated upstream
+=======
+import hashlib
+from dotenv import load_dotenv
+from requests_oauthlib import OAuth2Session
+
+# Load environment variables
+load_dotenv()
+# Remove OAuth2 variables
+# STARTGG_CLIENT_ID = os.getenv('STARTGG_CLIENT_ID')
+# STARTGG_CLIENT_SECRET = os.getenv('STARTGG_CLIENT_SECRET')
+# STARTGG_REDIRECT_URI = os.getenv('STARTGG_REDIRECT_URI')
+# STARTGG_AUTH_BASE = 'https://start.gg/oauth/authorize'
+# STARTGG_TOKEN_URL = 'https://start.gg/oauth/token'
+STARTGG_API_URL = 'https://api.start.gg/gql/alpha'
+STARTGG_API_TOKEN = os.getenv('STARTGG_API_TOKEN')
+>>>>>>> Stashed changes
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
@@ -100,10 +117,108 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+
+def seed_to_cost(seed):
+    if seed == 1:
+        return 250
+    elif seed == 2:
+        return 240
+    elif seed == 3:
+        return 220
+    elif seed == 4:
+        return 210
+    elif 5 <= seed <= 6:
+        return 190
+    elif 7 <= seed <= 9:
+        return 170
+    elif 10 <= seed <= 12:
+        return 150
+    elif 13 <= seed <= 16:
+        return 140
+    elif 17 <= seed <= 24:
+        return 130
+    elif 25 <= seed <= 32:
+        return 120
+    elif 33 <= seed <= 42:
+        return 100
+    elif 43 <= seed <= 62:
+        return 90
+    elif 63 <= seed <= 75:
+        return 80
+    elif 76 <= seed <= 113:
+        return 70
+    elif 114 <= seed <= 149:
+        return 60
+    elif 150 <= seed <= 167:
+        return 50
+    elif 168 <= seed <= 183:
+        return 40
+    elif 184 <= seed <= 191:
+        return 30
+    elif 192 <= seed <= 203:
+        return 20
+    else:
+        return '?'
+
 @app.route('/create')
 @login_required
 def create():
-    return render_template('create.html')
+    # Fetch entrants from start.gg
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    query = '''
+    query EventEntrants($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          name
+          slug
+          entrants(query: {perPage: 300}) {
+            nodes {
+              id
+              name
+              seeds {
+                seedNum
+              }
+              participants {
+                gamerTag
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {
+        'tourneySlug': tournament_slug
+    }
+    response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
+    data = response.json()
+    print("start.gg API response:", data)  # Debug print
+    if 'errors' in data:
+        print("start.gg API errors:", data['errors'])
+        return f"Error from start.gg: {data['errors']}", 500
+    if 'data' not in data:
+        print("No 'data' in start.gg response:", data)
+        return "No data returned from start.gg", 500
+    events = data['data']['tournament']['events']
+    print("Available event slugs:")
+    for e in events:
+        print(f"Name: {e['name']}, Slug: {e['slug']}")
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        return f"Event with slug '{event_slug}' not found.", 500
+    entrants = event['entrants']['nodes']
+    # Attach cost to each entrant based on seed
+    for entrant in entrants:
+        seed = entrant.get('seeds', [{}])[0].get('seedNum')
+        entrant['cost'] = seed_to_cost(seed) if seed is not None else '?'
+        entrant['seed'] = seed
+    return render_template('create.html', entrants=entrants)
 
 @app.route('/create', methods=["POST"])
 @login_required
@@ -160,5 +275,10 @@ def get_leaderboard():
     
     return jsonify(leaderboard)
 
+<<<<<<< Updated upstream
+=======
+# Remove /startgg/login and /startgg/callback routes and get_startgg_user_info
+
+>>>>>>> Stashed changes
 if __name__ == '__main__':
     app.run(debug=True)
