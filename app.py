@@ -9,6 +9,18 @@ import pandas as pd
 from datetime import datetime
 import math
 from functools import wraps
+import hashlib
+from dotenv import load_dotenv
+from requests_oauthlib import OAuth2Session
+
+# Load environment variables
+load_dotenv()
+STARTGG_CLIENT_ID = os.getenv('STARTGG_CLIENT_ID')
+STARTGG_CLIENT_SECRET = os.getenv('STARTGG_CLIENT_SECRET')
+STARTGG_REDIRECT_URI = os.getenv('STARTGG_REDIRECT_URI')
+STARTGG_AUTH_BASE = 'https://start.gg/oauth/authorize'
+STARTGG_TOKEN_URL = 'https://start.gg/oauth/token'
+STARTGG_API_URL = 'https://api.start.gg/gql/alpha'
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
@@ -17,6 +29,12 @@ app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
 cred = credentials.Certificate('key.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
+import os
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # Login required decorator
 def login_required(f):
@@ -47,52 +65,42 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
-        
-        try:
-            # Verify user with Firebase Auth
-            user = auth.get_user_by_email(email)
-            # Note: Firebase Admin SDK doesn't verify passwords directly
-            # You'll need to implement proper authentication
-            session['user_id'] = user.uid
-            session['email'] = user.email
-            return redirect(url_for('home'))
-        except Exception as e:
-            flash('Login failed. Please check your credentials.')
-            return render_template('login.html')
-    
+        user_query = db.collection('users').where('username', '==', username).stream()
+        user_doc = next(user_query, None)
+        if user_doc:
+            user = user_doc.to_dict()
+            if user['password_hash'] == hash_password(password):
+                session['user_id'] = user_doc.id
+                session['username'] = user['username']
+                return redirect(url_for('home'))
+            else:
+                flash('Incorrect password.')
+        else:
+            flash('Username not found.')
+        return render_template('login.html')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
         username = request.form['username']
-        
-        try:
-            # Create user in Firebase Auth
-            user = auth.create_user(
-                email=email,
-                password=password,
-                display_name=username
-            )
-            
-            # Create user document in Firestore
-            db.collection('users').document(user.uid).set({
-                'email': email,
-                'username': username,
-                'created_at': datetime.now()
-            })
-            
-            session['user_id'] = user.uid
-            session['email'] = user.email
-            return redirect(url_for('home'))
-        except Exception as e:
-            flash('Registration failed. Please try again.')
+        password = request.form['password']
+        # Check if username exists
+        user_query = db.collection('users').where('username', '==', username).stream()
+        if next(user_query, None):
+            flash('Username already exists.')
             return render_template('register.html')
-    
+        # Store user with hashed password
+        user_ref = db.collection('users').add({
+            'username': username,
+            'password_hash': hash_password(password),
+            'created_at': datetime.now()
+        })
+        session['user_id'] = user_ref[1].id
+        session['username'] = username
+        return redirect(url_for('home'))
     return render_template('register.html')
 
 @app.route('/logout')
@@ -159,6 +167,61 @@ def get_leaderboard():
         leaderboard.append(entry_data)
     
     return jsonify(leaderboard)
+
+@app.route('/startgg/login')
+def startgg_login():
+    oauth = OAuth2Session(STARTGG_CLIENT_ID, redirect_uri=STARTGG_REDIRECT_URI)
+    authorization_url, state = oauth.authorization_url(STARTGG_AUTH_BASE)
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+@app.route('/startgg/callback')
+def startgg_callback():
+    oauth = OAuth2Session(STARTGG_CLIENT_ID, redirect_uri=STARTGG_REDIRECT_URI, state=session.get('oauth_state'))
+    token = oauth.fetch_token(
+        STARTGG_TOKEN_URL,
+        client_secret=STARTGG_CLIENT_SECRET,
+        authorization_response=request.url
+    )
+    # Fetch user info from start.gg
+    user_info = get_startgg_user_info(token['access_token'])
+    if not user_info:
+        flash('Failed to fetch start.gg user info.')
+        return redirect(url_for('login'))
+    startgg_id = user_info['id']
+    username = user_info['slug']
+    # Check if user exists in Firestore
+    user_query = db.collection('users').where('startgg_id', '==', startgg_id).stream()
+    user_doc = next(user_query, None)
+    if user_doc:
+        user_id = user_doc.id
+    else:
+        # Create new user
+        user_ref = db.collection('users').add({
+            'username': username,
+            'startgg_id': startgg_id,
+            'created_at': datetime.now()
+        })
+        user_id = user_ref[1].id
+    session['user_id'] = user_id
+    session['username'] = username
+    session['startgg_id'] = startgg_id
+    flash('Logged in with start.gg!')
+    return redirect(url_for('home'))
+
+def get_startgg_user_info(access_token):
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    # GraphQL query to get user info
+    query = '{ "query": "query Me { me { id slug } }" }'
+    resp = requests.post(STARTGG_API_URL, headers=headers, data=query)
+    if resp.status_code == 200:
+        data = resp.json()
+        if data.get('data') and data['data'].get('me'):
+            return data['data']['me']
+    return None
 
 if __name__ == '__main__':
     app.run(debug=True)
