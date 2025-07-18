@@ -54,6 +54,8 @@ def home():
     for i, entry in enumerate(leaderboard_ref, 1):
         entry_data = entry.to_dict()
         entry_data['rank'] = i
+        # Use username if available, else fallback to user_id
+        entry_data['display_name'] = entry_data.get('username', entry_data.get('user_id', ''))
         leaderboard.append(entry_data)
     
     return render_template('index.html', teams=teams, leaderboard=leaderboard)
@@ -61,52 +63,43 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
-        
-        try:
-            # Verify user with Firebase Auth
-            user = auth.get_user_by_email(email)
-            # Note: Firebase Admin SDK doesn't verify passwords directly
-            # You'll need to implement proper authentication
-            session['user_id'] = user.uid
-            session['email'] = user.email
-            return redirect(url_for('home'))
-        except Exception as e:
-            flash('Login failed. Please check your credentials.')
-            return render_template('login.html')
-    
+        user_query = db.collection('users').where('username', '==', username).limit(1).stream()
+        user_doc = next(user_query, None)
+        if user_doc:
+            user = user_doc.to_dict()
+            user_id = user_doc.id
+            # Check password hash
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            if user.get('password_hash') == password_hash:
+                session['user_id'] = user_id
+                session['username'] = username
+                return redirect(url_for('home'))
+        flash('Login failed. Please check your credentials.')
+        return render_template('login.html')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
         username = request.form['username']
-        
-        try:
-            # Create user in Firebase Auth
-            user = auth.create_user(
-                email=email,
-                password=password,
-                display_name=username
-            )
-            
-            # Create user document in Firestore
-            db.collection('users').document(user.uid).set({
-                'email': email,
-                'username': username,
-                'created_at': datetime.now()
-            })
-            
-            session['user_id'] = user.uid
-            session['email'] = user.email
-            return redirect(url_for('home'))
-        except Exception as e:
-            flash('Registration failed. Please try again.')
+        password = request.form['password']
+        # Check if username already exists
+        user_query = db.collection('users').where('username', '==', username).limit(1).stream()
+        if next(user_query, None):
+            flash('Username already taken. Please choose another.')
             return render_template('register.html')
-    
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        user_ref = db.collection('users').add({
+            'username': username,
+            'password_hash': password_hash,
+            'created_at': datetime.now()
+        })
+        user_id = user_ref[1].id
+        session['user_id'] = user_id
+        session['username'] = username
+        return redirect(url_for('home'))
     return render_template('register.html')
 
 @app.route('/logout')
@@ -160,6 +153,15 @@ def seed_to_cost(seed):
 @app.route('/create')
 @login_required
 def create():
+    # Check if user already has a team
+    user_team_query = db.collection('teams').where('user_id', '==', session['user_id']).limit(1).stream()
+    user_team_doc = next(user_team_query, None)
+    user_team = user_team_doc.to_dict() if user_team_doc else None
+    if user_team:
+        # Pass team to template for delete button
+        team_id = user_team_doc.id
+    else:
+        team_id = None
     # Fetch entrants from start.gg
     tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
     event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
@@ -195,52 +197,75 @@ def create():
     }
     response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
     data = response.json()
-    print("start.gg API response:", data)  # Debug print
-    if 'errors' in data:
-        print("start.gg API errors:", data['errors'])
-        return f"Error from start.gg: {data['errors']}", 500
-    if 'data' not in data:
-        print("No 'data' in start.gg response:", data)
-        return "No data returned from start.gg", 500
+    if 'errors' in data or 'data' not in data:
+        return "Error loading entrants", 500
     events = data['data']['tournament']['events']
-    print("Available event slugs:")
-    for e in events:
-        print(f"Name: {e['name']}, Slug: {e['slug']}")
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         return f"Event with slug '{event_slug}' not found.", 500
     entrants = event['entrants']['nodes']
-    # Attach cost to each entrant based on seed
     for entrant in entrants:
         seed = entrant.get('seeds', [{}])[0].get('seedNum')
         entrant['cost'] = seed_to_cost(seed) if seed is not None else '?'
         entrant['seed'] = seed
-    return render_template('create.html', entrants=entrants)
+    return render_template('create.html', entrants=entrants, user_team=user_team, team_id=team_id)
 
 @app.route('/create', methods=["POST"])
 @login_required
 def add_team():
+    # Prevent multiple teams per user
+    user_team_query = db.collection('teams').where('user_id', '==', session['user_id']).limit(1).stream()
+    if next(user_team_query, None):
+        flash('You have already created a team.')
+        return redirect(url_for('home'))
     team_name = request.form['team_name']
-    players = request.form.getlist('players[]')  # Get all selected players
-    
+    import json
+    players_json = request.form.get('players', '[]')
+    print(f"DEBUG: Received players_json: {players_json}")  # Debug print
+    try:
+        players = json.loads(players_json)
+        print(f"DEBUG: Parsed players: {players}")  # Debug print
+    except Exception as e:
+        print(f"DEBUG: Error parsing players: {e}")  # Debug print
+        players = []
     # Create team document
-    team_ref = db.collection('teams').add({
+    team_data = {
         'user_id': session['user_id'],
+        'username': session['username'],
         'team_name': team_name,
         'players': players,
         'created_at': datetime.now()
-    })
-    
+    }
+    print(f"DEBUG: Team data being stored: {team_data}")  # Debug print
+    team_ref = db.collection('teams').add(team_data)
     # Create leaderboard entry
     db.collection('leaderboard').add({
         'user_id': session['user_id'],
+        'username': session['username'],
         'team_id': team_ref[1].id,
         'team_name': team_name,
         'points': 0,
         'created_at': datetime.now()
     })
-    
-    flash('Team created successfully!')
+    flash('Team created')
+    return redirect(url_for('home'))
+
+@app.route('/delete_team', methods=['POST'])
+@login_required
+def delete_team():
+    # Find and delete user's team
+    user_team_query = db.collection('teams').where('user_id', '==', session['user_id']).limit(1).stream()
+    user_team_doc = next(user_team_query, None)
+    if user_team_doc:
+        team_id = user_team_doc.id
+        user_team_doc.reference.delete()
+        # Delete leaderboard entry for this team
+        leaderboard_query = db.collection('leaderboard').where('team_id', '==', team_id).stream()
+        for entry in leaderboard_query:
+            entry.reference.delete()
+        flash('Team deleted')
+    else:
+        flash('No team to delete')
     return redirect(url_for('home'))
 
 @app.route('/api/update_score', methods=['POST'])
@@ -271,6 +296,22 @@ def get_leaderboard():
         leaderboard.append(entry_data)
     
     return jsonify(leaderboard)
+
+@app.route('/api/team/<team_id>')
+def api_get_team(team_id):
+    # Fetch team document
+    team_doc = db.collection('teams').document(team_id).get()
+    if not team_doc.exists:
+        return jsonify({'error': 'Team not found'}), 404
+    team = team_doc.to_dict()
+    # Try to get player details if stored
+    players = team.get('players', [])
+    # If players are stored as dicts with gamerTag/seed/cost, return as is
+    # If only IDs are stored, just return the IDs
+    return jsonify({
+        'team_name': team.get('team_name', ''),
+        'players': players
+    })
 
 # Remove /startgg/login and /startgg/callback routes and get_startgg_user_info
 

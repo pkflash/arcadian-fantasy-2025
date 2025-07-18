@@ -6,13 +6,20 @@
         <a class="button grayButton" href="">logout</a>
     </h2>
 <h3>Team Creation</h3>
+{% if user_team %}
+    <div style="text-align:center; color:#ff3333; font-weight:bold;">You have already created a team: <b>{{ user_team.team_name }}</b></div>
+    <form method="POST" action="{{ url_for('delete_team') }}" style="text-align:center; margin-top:20px;">
+        <button class="button" type="submit" style="background:#ff3333; color:white;">Delete Team</button>
+    </form>
+{% else %}
+<form id="team-form" method="POST" action="{{ url_for('add_team') }}">
 <div class="flex-container">
     <div class="section" style="width: 50%">
         <h2>TEAM</h2>
         <h3>
             1. Team name
         </h3>
-        <input type="text" placeholder="Enter team name" style="width: 80%; font-family: 'LemonMilkMedium'; margin-left: 10%">
+        <input type="text" name="team_name" id="team_name" placeholder="Enter team name" style="width: 80%; font-family: 'LemonMilkMedium'; margin-left: 10%">
 
         <h3>
             2. Set Roster
@@ -158,8 +165,9 @@
             </select>
         </div>
         <br><br><br><br><br><br>
+        <input type="hidden" name="players" id="players-input">
         <h1>
-            <button class="button grayButton" id="Register">Register Team</button>
+            <button class="button grayButton" id="Register" type="submit">Register Team</button>
         </h1>
     </div>
 
@@ -182,7 +190,11 @@
 
         <div class="cost-list">
             {% for entrant in entrants %}
-            <button class="cost-card" id="select-player" type="button" data-entrant-id="{{ entrant.id }}">
+            <button class="cost-card" id="select-player" type="button" 
+                data-entrant-id="{{ entrant.id }}"
+                data-gamertag="{{ entrant.participants[0].gamerTag if entrant.participants and entrant.participants[0].gamerTag else entrant.name }}"
+                data-seed="{{ entrant.seed }}"
+                data-cost="{{ entrant.cost }}">
                 <div class="name">{{ entrant.name }}</div>
                 <br>
                 <div class="info">Seed: {{ entrant.seed }}</div>
@@ -194,7 +206,8 @@
         </h3>
     </div>
 </div>
-
+</form>
+{% endif %}
 {% endblock %}
 
 <script>
@@ -215,30 +228,45 @@ document.addEventListener('DOMContentLoaded', function() {
     playerButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const playerId = btn.getAttribute('data-entrant-id');
-            const cost = parseInt(btn.querySelector('.cost-badge').textContent);
+            const gamerTag = btn.getAttribute('data-gamertag');
+            const seed = btn.getAttribute('data-seed');
+            const cost = btn.getAttribute('data-cost');
             const isSelected = btn.classList.contains('selected');
             if (!isSelected) {
                 if (selectedPlayers.length >= 12) {
                     showBudgetError(true);
                     return;
                 }
-                if (currentBudget - cost < 0) {
+                if (currentBudget - parseInt(cost) < 0) {
                     showBudgetError(true);
                     return;
                 }
-                selectedPlayers.push(playerId);
-                currentBudget -= cost;
+                selectedPlayers.push({
+                    id: playerId,
+                    gamerTag: gamerTag,
+                    seed: seed,
+                    cost: cost
+                });
+                currentBudget -= parseInt(cost);
                 btn.classList.add('selected');
                 showBudgetError(false);
             } else {
                 // Deselect
-                selectedPlayers = selectedPlayers.filter(id => id !== playerId);
-                currentBudget += cost;
+                selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+                currentBudget += parseInt(cost);
                 btn.classList.remove('selected');
                 showBudgetError(false);
             }
             updateBudgetDisplay();
         });
     });
+});
+
+document.getElementById('team-form').addEventListener('submit', function(e) {
+    // Collect selected player objects
+    const playersInput = document.getElementById('players-input');
+    console.log('DEBUG: selectedPlayers before submit:', selectedPlayers);  // Debug print
+    playersInput.value = JSON.stringify(selectedPlayers);
+    console.log('DEBUG: playersInput.value after JSON.stringify:', playersInput.value);  // Debug print
 });
 </script>

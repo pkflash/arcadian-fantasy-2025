@@ -180,4 +180,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Attach sidebar pop to all leaderboard team buttons
+    const teamButtons = document.querySelectorAll('[id^="button-team"]');
+    teamButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove any existing sidebar
+            const oldSidebar = document.getElementById('side-bar');
+            if (oldSidebar) oldSidebar.remove();
+            const teamId = btn.getAttribute('data-team-id');
+            fetch(`/api/team/${teamId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const container = document.getElementById('new');
+                    let playersHtml = '';
+                    if (data.players && data.players.length > 0) {
+                        data.players.forEach((player, idx) => {
+                            playersHtml += `<div class='player-card' style='margin:3%'>
+                                <div class='label'>${player.gamerTag || player.name || 'Player ' + (idx+1)}</div>`;
+                            if (player.seed !== undefined || player.cost !== undefined) {
+                                playersHtml += `<div class='status'>`;
+                                if (player.seed !== undefined) playersHtml += `Seed: ${player.seed} `;
+                                if (player.cost !== undefined) playersHtml += `Cost: ${player.cost}`;
+                                playersHtml += `</div>`;
+                            }
+                            playersHtml += `</div>`;
+                        });
+                    } else {
+                        playersHtml = '<div>No players found for this team.</div>';
+                    }
+                    const htmlToInsert = `
+                        <div class="leaderboard-container" id="side-bar" style="width: 20%; left: 70%; top: 79.5%; height: 120%; justify-content: center;">
+                        <button class="link-button" id="x-button" style="color: #ff0000">&times</button>
+                        <h2>${data.team_name || 'Team'}</h2>
+                        <div class="team-view">
+                            ${playersHtml}
+                        </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', htmlToInsert);
+                });
+        });
+    });
+    document.addEventListener("click", function(event) {
+        if (event.target.matches("#x-button")) {
+            const sideBar = document.getElementById('side-bar');
+            if (sideBar) sideBar.remove();
+        }
+    });
+
 });

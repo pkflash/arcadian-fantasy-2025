@@ -4,6 +4,13 @@
 
 <body>
     <h1>norcal arcadian 2025 fantasy! :)</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" style="text-align:center; font-weight:bold; color:green;">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     {% block body %}
     <h2>
         {% if session.user_id %}
@@ -27,8 +34,8 @@
                 {% for entry in leaderboard %}
                 <tr>
                     <td>{{ entry.rank }}</td>
-                    <td>{{ entry.user_id }}</td>
-                    <td><button class="link-button" id="button-team{{ loop.index }}">{{ entry.team_name }}</button></td>
+                    <td>{{ entry.display_name }}</td>
+                    <td><button class="link-button" id="button-team{{ loop.index }}" data-team-id="{{ entry.team_id }}">{{ entry.team_name }}</button></td>
                     <td>{{ entry.points }}</td>
                 </tr>
                 {% endfor %}
