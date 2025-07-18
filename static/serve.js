@@ -85,7 +85,71 @@ if (button1){
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Player selection and team creation logic for create team page ---
+    const teamForm = document.getElementById('team-form');
+    if (teamForm) {
+        const BUDGET_LIMIT = 1200;
+        let players = [];
+        let currentBudget = BUDGET_LIMIT;
+
+        function updateBudgetDisplay() {
+            const budgetElem = document.querySelector('.budget-box .amount h3');
+            if (budgetElem) budgetElem.textContent = currentBudget;
+        }
+
+        function showBudgetError(show) {
+            const errElem = document.getElementById('budget-error');
+            if (errElem) errElem.style.display = show ? 'block' : 'none';
+        }
+
+        const playerButtons = document.querySelectorAll('.cost-card');
+        playerButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const playerId = btn.getAttribute('data-entrant-id');
+                const gamerTag = btn.getAttribute('data-gamertag');
+                const seed = btn.getAttribute('data-seed');
+                const cost = btn.getAttribute('data-cost');
+                const isSelected = btn.classList.contains('selected');
+                if (!isSelected) {
+                    if (players.length >= 12) {
+                        showBudgetError(true);
+                        return;
+                    }
+                    if (currentBudget - parseInt(cost) < 0) {
+                        showBudgetError(true);
+                        return;
+                    }
+                    players.push({
+                        id: playerId,
+                        gamerTag: gamerTag,
+                        seed: seed,
+                        cost: cost
+                    });
+                    console.log('DEBUG: players after add:', players);
+                    currentBudget -= parseInt(cost);
+                    btn.classList.add('selected');
+                    showBudgetError(false);
+                } else {
+                    // Deselect
+                    players = players.filter(p => p.id !== playerId);
+                    console.log('DEBUG: players after remove:', players);
+                    currentBudget += parseInt(cost);
+                    btn.classList.remove('selected');
+                    showBudgetError(false);
+                }
+                updateBudgetDisplay();
+            });
+        });
+
+        teamForm.addEventListener('submit', function(e) {
+            // Collect selected player objects
+            const playersInput = document.getElementById('players-input');
+            console.log('DEBUG: players before submit:', players);  // Debug print
+            playersInput.value = JSON.stringify(players);
+            console.log('DEBUG: playersInput.value after JSON.stringify:', playersInput.value);  // Debug print
+        });
+    }
 
     const playerButtons = document.querySelectorAll('.cost-card'); // Refers to player buttons on the right
     const teamSlots = document.querySelectorAll('.team-player'); // Refers to team slots on the left
@@ -196,11 +260,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.players && data.players.length > 0) {
                         data.players.forEach((player, idx) => {
                             playersHtml += `<div class='player-card' style='margin:3%'>
-                                <div class='label'>${player.gamerTag || player.name || 'Player ' + (idx+1)}</div>`;
+                                <div class='label'>${player.gamerTag || player.name || 'Player ' + (idx+1)}</div><br>`;
                             if (player.seed !== undefined || player.cost !== undefined) {
                                 playersHtml += `<div class='status'>`;
-                                if (player.seed !== undefined) playersHtml += `Seed: ${player.seed} `;
-                                if (player.cost !== undefined) playersHtml += `Cost: ${player.cost}`;
+                                if (player.seed !== undefined) playersHtml += `Seed: ${player.seed}<br>`;
+                                if (player.cost !== undefined) playersHtml += `Cost: ${player.cost}<br>`;
                                 playersHtml += `</div>`;
                             }
                             playersHtml += `</div>`;

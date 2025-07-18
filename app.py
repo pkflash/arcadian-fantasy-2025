@@ -41,13 +41,101 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+POINTS_BY_PLACING = {
+    1: 550,
+    2: 520,
+    3: 490,
+    4: 460,
+    5: 430,
+    7: 390,
+    9: 350,
+    13: 310,
+    17: 270,
+    25: 220,
+    33: 170,
+    49: 120,
+    73: 60,
+    97: 0,
+    129: 0,
+    193: 0,
+    257: 0,
+}
+
+def get_points_for_placing(placing):
+    return POINTS_BY_PLACING.get(placing, 0)
+
+def fetch_entrant_placings():
+    # Fetch all entrants and their placings from start.gg
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    query = '''
+    query EventPlacings($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          entrants(query: {perPage: 300}) {
+            nodes {
+              id
+              name
+              finalPlacement
+              participants {
+                gamerTag
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'tourneySlug': tournament_slug}
+    response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        return {}
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        return {}
+    entrants = event['entrants']['nodes']
+    # Map entrant id to (finalPlacement, gamerTag)
+    placings = {}
+    for entrant in entrants:
+        eid = entrant['id']
+        placement = entrant.get('finalPlacement')
+        gamerTag = entrant['participants'][0]['gamerTag'] if entrant['participants'] and 'gamerTag' in entrant['participants'][0] else entrant['name']
+        placings[eid] = {'placing': placement, 'gamerTag': gamerTag}
+    return placings
+
+def update_all_team_points():
+    placings = fetch_entrant_placings()
+    teams_ref = db.collection('teams').stream()
+    for team_doc in teams_ref:
+        team = team_doc.to_dict()
+        players = team.get('players', [])
+        total_points = 0
+        for player in players:
+            eid = player['id'] if isinstance(player, dict) else player
+            placing = placings.get(eid, {}).get('placing')
+            points = get_points_for_placing(placing) if placing is not None else 0
+            total_points += points
+        # Update leaderboard entry for this team
+        leaderboard_query = db.collection('leaderboard').where('team_id', '==', team_doc.id).stream()
+        for entry in leaderboard_query:
+            entry.reference.update({'points': total_points})
+
 @app.route('/')
 @login_required
 def home():
+    # Update all team points before rendering leaderboard
+    update_all_team_points()
     # Get current user's teams
     user_teams = db.collection('teams').where('user_id', '==', session['user_id']).stream()
     teams = [team.to_dict() for team in user_teams]
-    
     # Get leaderboard data
     leaderboard_ref = db.collection('leaderboard').order_by('points', direction=firestore.Query.DESCENDING).stream()
     leaderboard = []
@@ -57,7 +145,6 @@ def home():
         # Use username if available, else fallback to user_id
         entry_data['display_name'] = entry_data.get('username', entry_data.get('user_id', ''))
         leaderboard.append(entry_data)
-    
     return render_template('index.html', teams=teams, leaderboard=leaderboard)
 
 @app.route('/login', methods=['GET', 'POST'])

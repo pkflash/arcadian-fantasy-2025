@@ -14,7 +14,7 @@
     {% block body %}
     <h2>
         {% if session.user_id %}
-            <a class="button grayButton" href="{{ url_for('create') }}">create team</a>
+        <a class="button grayButton" href="{{ url_for('create') }}">create team</a>
             <a class="button grayButton" href="{{ url_for('logout') }}">logout</a>
         {% else %}
             <a class="button grayButton" href="{{ url_for('login') }}">login</a>

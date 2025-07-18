@@ -212,7 +212,7 @@
 
 <script>
 const BUDGET_LIMIT = 1200;
-let selectedPlayers = [];
+let players = [];
 let currentBudget = BUDGET_LIMIT;
 
 function updateBudgetDisplay() {
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const cost = btn.getAttribute('data-cost');
             const isSelected = btn.classList.contains('selected');
             if (!isSelected) {
-                if (selectedPlayers.length >= 12) {
+                if (players.length >= 12) {
                     showBudgetError(true);
                     return;
                 }
@@ -241,18 +241,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     showBudgetError(true);
                     return;
                 }
-                selectedPlayers.push({
+                players.push({
                     id: playerId,
                     gamerTag: gamerTag,
                     seed: seed,
                     cost: cost
                 });
+                console.log('DEBUG: players after add:', players);
                 currentBudget -= parseInt(cost);
                 btn.classList.add('selected');
                 showBudgetError(false);
             } else {
                 // Deselect
-                selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+                players = players.filter(p => p.id !== playerId);
+                console.log('DEBUG: players after remove:', players);
                 currentBudget += parseInt(cost);
                 btn.classList.remove('selected');
                 showBudgetError(false);
@@ -265,8 +267,8 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('team-form').addEventListener('submit', function(e) {
     // Collect selected player objects
     const playersInput = document.getElementById('players-input');
-    console.log('DEBUG: selectedPlayers before submit:', selectedPlayers);  // Debug print
-    playersInput.value = JSON.stringify(selectedPlayers);
+    console.log('DEBUG: players before submit:', players);  // Debug print
+    playersInput.value = JSON.stringify(players);
     console.log('DEBUG: playersInput.value after JSON.stringify:', playersInput.value);  // Debug print
 });
 </script>
