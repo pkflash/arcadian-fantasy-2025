@@ -6,7 +6,7 @@ import requests
 import random
 import time
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 import math
 from functools import wraps
 import hashlib
@@ -113,6 +113,10 @@ def fetch_entrant_placings():
 
 def update_all_team_points():
     placings = fetch_entrant_placings()
+    game5_count = fetch_top8_game5_count()
+    winner_games_lost = fetch_winner_games_lost()
+    unique_char_count = fetch_top8_unique_characters_count()
+    three_stock_count = fetch_top8_three_stock_count()
     teams_ref = db.collection('teams').stream()
     for team_doc in teams_ref:
         team = team_doc.to_dict()
@@ -123,16 +127,441 @@ def update_all_team_points():
             placing = placings.get(eid, {}).get('placing')
             points = get_points_for_placing(placing) if placing is not None else 0
             total_points += points
+        # Bonus 1: Award 25 points if user's selected range or 21+ matches three_stock_count
+        bonus1 = team.get('bonus1')
+        try:
+            if three_stock_count is not None and bonus1 is not None:
+                if '+' in bonus1:
+                    min_val = int(bonus1.replace('+', '').replace(' ', ''))
+                    if three_stock_count >= min_val:
+                        total_points += 25
+                elif '-' in bonus1:
+                    min_val, max_val = [int(x) for x in bonus1.split('-')]
+                    if min_val <= three_stock_count <= max_val:
+                        total_points += 25
+                else:
+                    # Exact match (if dropdown ever uses exact numbers)
+                    if int(bonus1) == three_stock_count:
+                        total_points += 25
+        except Exception as e:
+            print(f"Error checking bonus1 for team {team_doc.id}: {e}")
+        # Bonus 2: Award 25 points if user's answer matches actual game5_count
+        bonus2 = team.get('bonus2')
+        try:
+            if bonus2 is not None and int(bonus2) == game5_count:
+                total_points += 25
+        except Exception as e:
+            print(f"Error checking bonus2 for team {team_doc.id}: {e}")
+        # Bonus 3: Award 25 points if user's selected range or 12+ matches unique_char_count
+        bonus3 = team.get('bonus3')
+        try:
+            if unique_char_count is not None and bonus3 is not None:
+                if '+' in bonus3:
+                    min_val = int(bonus3.replace('+', '').replace(' ', ''))
+                    if unique_char_count >= min_val:
+                        total_points += 25
+                elif '-' in bonus3:
+                    min_val, max_val = [int(x) for x in bonus3.split('-')]
+                    if min_val <= unique_char_count <= max_val:
+                        total_points += 25
+                else:
+                    # Exact match (if dropdown ever uses exact numbers)
+                    if int(bonus3) == unique_char_count:
+                        total_points += 25
+        except Exception as e:
+            print(f"Error checking bonus3 for team {team_doc.id}: {e}")
+        # Bonus 4: Award 25 points if user's selected range contains actual games lost
+        bonus4 = team.get('bonus4')
+        try:
+            if bonus4 is not None:
+                if '+' in bonus4:
+                    min_val = int(bonus4.replace('+', '').replace(' ', ''))
+                    if winner_games_lost >= min_val:
+                        total_points += 25
+                elif '-' in bonus4:
+                    min_val, max_val = [int(x) for x in bonus4.split('-')]
+                    if min_val <= winner_games_lost <= max_val:
+                        total_points += 25
+        except Exception as e:
+            print(f"Error checking bonus4 for team {team_doc.id}: {e}")
         # Update leaderboard entry for this team
         leaderboard_query = db.collection('leaderboard').where('team_id', '==', team_doc.id).stream()
         for entry in leaderboard_query:
             entry.reference.update({'points': total_points})
 
+def fetch_top8_game5_count():
+    """
+    Fetch all sets in top 8 for the event and count how many were game 5s (3-2 score).
+    Returns the count as an integer.
+    """
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    # First, get the phaseGroups for the event (to find top 8 phase group)
+    query_phasegroups = '''
+    query EventPhaseGroups($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          phaseGroups {
+            id
+            displayIdentifier
+            phase {
+              name
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'tourneySlug': tournament_slug}
+    response = requests.post(url, headers=headers, json={"query": query_phasegroups, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching phase groups:', data)
+        return 0
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        print('Event not found')
+        return 0
+    # Try to find the phase group for top 8 (look for 'Top 8' in phase name or displayIdentifier)
+    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
+    if not top8_pg:
+        print('Top 8 phase group not found')
+        return 0
+    phasegroup_id = top8_pg['id']
+    # Now fetch sets for this phase group
+    query_sets = '''
+    query PhaseGroupSets($phaseGroupId: ID!) {
+      phaseGroup(id: $phaseGroupId) {
+        sets(perPage: 50) {
+          nodes {
+            id
+            displayScore
+            winnerId
+            slots {
+              entrant {
+                id
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'phaseGroupId': phasegroup_id}
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching sets:', data)
+        return 0
+    sets = data['data']['phaseGroup']['sets']['nodes']
+    # Count sets with displayScore like '3-2' or '2-3'
+    game5_count = 0
+    for s in sets:
+        score = s.get('displayScore', '')
+        if not isinstance(score, str):
+            continue
+        if '3-2' in score or '2-3' in score:
+            game5_count += 1
+    return game5_count
+
+def fetch_winner_games_lost():
+    """
+    Find the winner of singles, fetch all their sets, and count the total number of games they lost throughout the event.
+    Returns the total games lost as an integer.
+    """
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    # Step 1: Find winner's entrant ID
+    query_entrants = '''
+    query EventEntrants($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          entrants(query: {perPage: 300}) {
+            nodes {
+              id
+              finalPlacement
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'tourneySlug': tournament_slug}
+    response = requests.post(url, headers=headers, json={"query": query_entrants, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching entrants:', data)
+        return 0
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        print('Event not found')
+        return 0
+    entrants = event['entrants']['nodes']
+    winner = next((e for e in entrants if e.get('finalPlacement') == 1), None)
+    if not winner:
+        print('Winner not found')
+        return 0
+    winner_id = winner['id']
+    # Step 2: Fetch all sets in the event
+    query_sets = '''
+    query EventSets($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          sets(perPage: 200) {
+            nodes {
+              id
+              slots {
+                entrant {
+                  id
+                }
+              }
+              displayScore
+              winnerId
+            }
+          }
+        }
+      }
+    }
+    '''
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching sets:', data)
+        return 0
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        print('Event not found (sets)')
+        return 0
+    sets = event['sets']['nodes']
+    # Step 3: For each set the winner played, count games lost
+    games_lost = 0
+    for s in sets:
+        # Check if winner participated in this set
+        slot_ids = [slot['entrant']['id'] for slot in s.get('slots', []) if slot.get('entrant')]
+        if winner_id not in slot_ids:
+            continue
+        score = s.get('displayScore', '')
+        # Parse score, e.g., '3-2', '3-1', '2-3', etc.
+        import re
+        match = re.match(r"(\d+)-(\d+)", score)
+        if not match:
+            continue
+        score1, score2 = int(match.group(1)), int(match.group(2))
+        # Determine if winner was score1 or score2
+        if str(s.get('winnerId')) == str(winner_id):
+            # Winner's score is score1
+            games_lost += score2
+        else:
+            # Winner's score is score2
+            games_lost += score1
+    return games_lost
+
+def fetch_top8_unique_characters_count():
+    """
+    Fetch all sets in top 8 and return the number of unique characters used.
+    Returns the count as an integer, or None if character data is not available.
+    """
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    # Get phaseGroups for the event (to find top 8 phase group)
+    query_phasegroups = '''
+    query EventPhaseGroups($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          phaseGroups {
+            id
+            displayIdentifier
+            phase {
+              name
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'tourneySlug': tournament_slug}
+    response = requests.post(url, headers=headers, json={"query": query_phasegroups, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching phase groups:', data)
+        return None
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        print('Event not found')
+        return None
+    # Try to find the phase group for top 8 (look for '8' in phase name or displayIdentifier)
+    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
+    if not top8_pg:
+        print('Top 8 phase group not found')
+        return None
+    phasegroup_id = top8_pg['id']
+    # Fetch sets for this phase group, including games and character data
+    query_sets = '''
+    query PhaseGroupSets($phaseGroupId: ID!) {
+      phaseGroup(id: $phaseGroupId) {
+        sets(perPage: 50) {
+          nodes {
+            id
+            games {
+              selections {
+                character {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'phaseGroupId': phasegroup_id}
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching sets:', data)
+        return None
+    sets = data['data']['phaseGroup']['sets']['nodes']
+    unique_characters = set()
+    for s in sets:
+        games = s.get('games', [])
+        if not isinstance(games, list):
+            continue
+        for game in games:
+            selections = game.get('selections', [])
+            if not isinstance(selections, list):
+                continue
+            for sel in selections:
+                char = sel.get('character', {})
+                char_name = char.get('name')
+                if char_name:
+                    unique_characters.add(char_name)
+    if not unique_characters:
+        # No character data found
+        return None
+    return len(unique_characters)
+
+def fetch_top8_three_stock_count():
+    """
+    Fetch all games in top 8 and count the number of 3-stocks (games where the winner had 3 stocks left).
+    Returns the count as an integer, or None if stock data is not available.
+    """
+    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
+    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
+    url = STARTGG_API_URL
+    headers = {
+        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    # Get phaseGroups for the event (to find top 8 phase group)
+    query_phasegroups = '''
+    query EventPhaseGroups($tourneySlug: String!) {
+      tournament(slug: $tourneySlug) {
+        events {
+          slug
+          phaseGroups {
+            id
+            displayIdentifier
+            phase {
+              name
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'tourneySlug': tournament_slug}
+    response = requests.post(url, headers=headers, json={"query": query_phasegroups, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching phase groups:', data)
+        return None
+    events = data['data']['tournament']['events']
+    event = next((e for e in events if e['slug'] == event_slug), None)
+    if not event:
+        print('Event not found')
+        return None
+    # Try to find the phase group for top 8 (look for '8' in phase name or displayIdentifier)
+    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
+    if not top8_pg:
+        print('Top 8 phase group not found')
+        return None
+    phasegroup_id = top8_pg['id']
+    # Fetch sets for this phase group, including games and stock data
+    query_sets = '''
+    query PhaseGroupSets($phaseGroupId: ID!) {
+      phaseGroup(id: $phaseGroupId) {
+        sets(perPage: 50) {
+          nodes {
+            id
+            games {
+              winnerId
+              stocks {
+                id
+                count
+                entrantId
+              }
+            }
+          }
+        }
+      }
+    }
+    '''
+    variables = {'phaseGroupId': phasegroup_id}
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    data = response.json()
+    if 'errors' in data or 'data' not in data:
+        print('Error fetching sets:', data)
+        return None
+    sets = data['data']['phaseGroup']['sets']['nodes']
+    three_stock_count = 0
+    found_stock_data = False
+    for s in sets:
+        games = s.get('games', [])
+        if not isinstance(games, list):
+            continue
+        for game in games:
+            winner_id = game.get('winnerId')
+            stocks = game.get('stocks', [])
+            if not isinstance(stocks, list):
+                continue
+            # Find the stock count for the winner
+            for stock in stocks:
+                if str(stock.get('entrantId')) == str(winner_id):
+                    found_stock_data = True
+                    if stock.get('count') == 3:
+                        three_stock_count += 1
+    if not found_stock_data:
+        # No stock data found
+        return None
+    return three_stock_count
+
 @app.route('/')
 @login_required
 def home():
-    # Update all team points before rendering leaderboard
-    update_all_team_points()
+    # update_all_team_points()  # Disabled for performance; now updated by scheduler
     # Get current user's teams
     user_teams = db.collection('teams').where('user_id', '==', session['user_id']).stream()
     teams = [team.to_dict() for team in user_teams]
@@ -240,6 +669,11 @@ def seed_to_cost(seed):
 @app.route('/create')
 @login_required
 def create():
+    # Restrict access after 2:00 pm on 7/19/25 (UTC assumed)
+    deadline = datetime(2025, 7, 19, 14, 0, 0, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if now > deadline:
+        return '<h2 style="text-align:center; color:#ff3333;">too late bud</h2>'
     # Check if user already has a team
     user_team_query = db.collection('teams').where('user_id', '==', session['user_id']).limit(1).stream()
     user_team_doc = next(user_team_query, None)
@@ -315,13 +749,22 @@ def add_team():
     except Exception as e:
         print(f"DEBUG: Error parsing players: {e}")  # Debug print
         players = []
+    # Extract bonus answers from form
+    bonus1 = request.form.get('bonus1')
+    bonus2 = request.form.get('bonus2')
+    bonus3 = request.form.get('bonus3')
+    bonus4 = request.form.get('bonus4')
     # Create team document
     team_data = {
         'user_id': session['user_id'],
         'username': session['username'],
         'team_name': team_name,
         'players': players,
-        'created_at': datetime.now()
+        'created_at': datetime.now(),
+        'bonus1': bonus1,
+        'bonus2': bonus2,
+        'bonus3': bonus3,
+        'bonus4': bonus4
     }
     print(f"DEBUG: Team data being stored: {team_data}")  # Debug print
     team_ref = db.collection('teams').add(team_data)
@@ -399,6 +842,15 @@ def api_get_team(team_id):
         'team_name': team.get('team_name', ''),
         'players': players
     })
+
+@app.route('/api/update_leaderboard', methods=['POST', 'GET'])
+def update_leaderboard():
+    # Optionally, add a secret key check for security
+    # secret = request.headers.get('X-Update-Secret')
+    # if secret != os.getenv('SCHEDULER_SECRET', 'changeme'):
+    #     return 'Unauthorized', 401
+    update_all_team_points()
+    return 'Leaderboard updated', 200
 
 # Remove /startgg/login and /startgg/callback routes and get_startgg_user_info
 

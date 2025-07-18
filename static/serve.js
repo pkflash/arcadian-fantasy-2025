@@ -1,88 +1,88 @@
-const button1 = document.getElementById('button-team1');
+// const button1 = document.getElementById('button-team1');
 const TOTAL_COST = 1200;
 let remainingMoney = TOTAL_COST;
 const createButton = document.getElementById('Register');
 // Button1 check only passes on index page
-if (button1){
-    button1.addEventListener('click', function() {
-        const container = document.getElementById('new');
-        const htmlToInsert = `
-                <div class="leaderboard-container" id="side-bar" style="width: 20%; left: 70%; top: 79.5%; height: 120%; justify-content: center;">
-                <button class="link-button" id="x-button" style="color: #ff0000">&times</button>
-                <h2>Gang Bangers of All Time</h2>
-                <div class="team-view">
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 1</div>
-                        <div class="status">Empty</div>
-                    </div>
+// if (button1){
+//     button1.addEventListener('click', function() {
+//         const container = document.getElementById('new');
+//         const htmlToInsert = `
+//                 <div class="leaderboard-container" id="side-bar" style="width: 20%; left: 70%; top: 79.5%; height: 120%; justify-content: center;">
+//                 <button class="link-button" id="x-button" style="color: #ff0000">&times</button>
+//                 <h2>Gang Bangers of All Time</h2>
+//                 <div class="team-view">
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 1</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 2</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 2</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 3</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 3</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 4</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 4</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 5</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 5</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 6</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 6</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 7</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 7</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 8</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 8</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 9</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 9</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 10</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 10</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 11</div>
-                        <div class="status">Empty</div>
-                    </div>
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 11</div>
+//                         <div class="status">Empty</div>
+//                     </div>
 
-                    <div class="player-card" style="margin: 3%">
-                        <div class="label">Player 12</div>
-                        <div class="status">Empty</div>
-                    </div>
-                </div>
-                </div>
-        `;
-        container.insertAdjacentHTML('beforeend', htmlToInsert);
-        });
+//                     <div class="player-card" style="margin: 3%">
+//                         <div class="label">Player 12</div>
+//                         <div class="status">Empty</div>
+//                     </div>
+//                 </div>
+//                 </div>
+//         `;
+//         container.insertAdjacentHTML('beforeend', htmlToInsert);
+//         });
     
-    document.addEventListener("click", function(event) {
-        if (event.target.matches("#x-button")) {
-        const sideBar = document.getElementById('side-bar');
-        sideBar.remove();
-    }
-    });
-}
+//     document.addEventListener("click", function(event) {
+//         if (event.target.matches("#x-button")) {
+//         const sideBar = document.getElementById('side-bar');
+//         sideBar.remove();
+//     }
+//     });
+// }
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -98,9 +98,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (budgetElem) budgetElem.textContent = currentBudget;
         }
 
+        let budgetErrorTimeout = null;
         function showBudgetError(show) {
             const errElem = document.getElementById('budget-error');
-            if (errElem) errElem.style.display = show ? 'block' : 'none';
+            if (show) {
+                errElem.style.display = 'block';
+                if (budgetErrorTimeout) clearTimeout(budgetErrorTimeout);
+                budgetErrorTimeout = setTimeout(() => {
+                    errElem.style.display = 'none';
+                }, 5000); // Show for 5 seconds
+            } else {
+                errElem.style.display = 'none';
+                if (budgetErrorTimeout) clearTimeout(budgetErrorTimeout);
+            }
         }
 
         const playerButtons = document.querySelectorAll('.cost-card');
@@ -248,14 +258,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const teamButtons = document.querySelectorAll('[id^="button-team"]');
     teamButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Remove any existing sidebar
-            const oldSidebar = document.getElementById('side-bar');
-            if (oldSidebar) oldSidebar.remove();
             const teamId = btn.getAttribute('data-team-id');
+            const oldSidebar = document.getElementById('side-bar');
+            // If sidebar is open for this team, close it (toggle)
+            if (oldSidebar && oldSidebar.getAttribute('data-team-id') === teamId) {
+                oldSidebar.remove();
+                return;
+            }
+            // Remove any existing sidebar before inserting a new one
+            if (oldSidebar) oldSidebar.remove();
             fetch(`/api/team/${teamId}`)
                 .then(res => res.json())
                 .then(data => {
                     const container = document.getElementById('new');
+                    // Remove any sidebar again just before inserting (double safety)
+                    const checkSidebar = document.getElementById('side-bar');
+                    if (checkSidebar) checkSidebar.remove();
                     let playersHtml = '';
                     if (data.players && data.players.length > 0) {
                         data.players.forEach((player, idx) => {
@@ -273,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         playersHtml = '<div>No players found for this team.</div>';
                     }
                     const htmlToInsert = `
-                        <div class="leaderboard-container" id="side-bar" style="width: 20%; left: 70%; top: 79.5%; height: 120%; justify-content: center;">
+                        <div class="leaderboard-container" id="side-bar" data-team-id="${teamId}">
                         <button class="link-button" id="x-button" style="color: #ff0000">&times</button>
                         <h2>${data.team_name || 'Team'}</h2>
                         <div class="team-view">
@@ -291,5 +309,31 @@ document.addEventListener('DOMContentLoaded', function() {
             if (sideBar) sideBar.remove();
         }
     });
+
+    // Leaderboard search bar filter
+    const leaderboardSearch = document.getElementById('leaderboard-search');
+    if (leaderboardSearch) {
+        leaderboardSearch.addEventListener('input', function() {
+            const query = leaderboardSearch.value.toLowerCase();
+            const rows = document.querySelectorAll('.leaderboard-container table tr');
+            rows.forEach((row, idx) => {
+                // Skip header row
+                if (idx === 0) return;
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
+    // Fade out flash message after 5 seconds
+    var flash = document.getElementById("flash-message");
+    if (flash) {
+        setTimeout(function() {
+            flash.classList.add("fade-out");
+            setTimeout(function() {
+                flash.style.display = "none";
+            }, 1000); // match the animation duration
+        }, 5000); // 5 seconds before starting fade
+    }
 
 });

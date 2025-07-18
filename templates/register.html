@@ -4,7 +4,7 @@
     <title>Register - Norcal Arcadian Fantasy</title>
     <link rel="stylesheet" href="/static/styles.css" />
 </head>
-<body>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
     <div class="auth-container">
         <h1>Register for Norcal Arcadian Fantasy</h1>
         
@@ -27,7 +27,7 @@
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit" class="button">Register</button>
+            <button type="submit" class="button grayButton">Register</button>
         </form>
         
         <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>

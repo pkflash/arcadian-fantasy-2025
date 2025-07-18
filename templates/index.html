@@ -4,13 +4,6 @@
 
 <body>
     <h1>norcal arcadian 2025 fantasy! :)</h1>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-success" style="text-align:center; font-weight:bold; color:green;">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
     {% block body %}
     <h2>
         {% if session.user_id %}
@@ -23,7 +16,8 @@
     </h2>
     <h2>leaderboard</h2>
     <div class="flex-container">
-        <div class="leaderboard-container" style="left: 30%">
+        <div class="leaderboard-container">
+            <input type="text" id="leaderboard-search" placeholder="Search leaderboard..." style="width: 80%; margin: 0 auto 16px auto; display: block;">
             <table style="width: 100%">
                 <tr>
                     <th style="width: 10%">Rank</th>
@@ -111,5 +105,13 @@
         <!-- </div> -->
     </div>
     {% endblock %}
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" id="flash-message" style="text-align:center; font-weight:bold;"><h3>{{ message }}</h3></div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 </body>
 <script src="/static/serve.js" charset="utf-8"></script>

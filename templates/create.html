@@ -7,9 +7,9 @@
     </h2>
 <h3>Team Creation</h3>
 {% if user_team %}
-    <div style="text-align:center; color:#ff3333; font-weight:bold;">You have already created a team: <b>{{ user_team.team_name }}</b></div>
+    <h1 style="color:#ff3333;">You have already created a team: <b>{{ user_team.team_name }}</h1></b>
     <form method="POST" action="{{ url_for('delete_team') }}" style="text-align:center; margin-top:20px;">
-        <button class="button" type="submit" style="background:#ff3333; color:white;">Delete Team</button>
+        <button class="button grayButton" type="submit">Delete Team</button>
     </form>
 {% else %}
 <form id="team-form" method="POST" action="{{ url_for('add_team') }}">
@@ -105,7 +105,7 @@
         <div class="bonus">
             <label>Bonus 1 - 25 points</label>
             <p>How many 3 stocks will occur in top 8?</p>
-            <select>
+            <select name="bonus1">
                 <option>0-5</option>
                 <option>6-10</option>
                 <option>10-15</option>
@@ -116,7 +116,7 @@
         <div class="bonus">
             <label>Bonus 2 - 25 points</label>
             <p>How many game 5's will occur in top 8?</p>
-            <select>
+            <select name="bonus2">
                 <option>0</option>
                 <option>1</option>
                 <option>2</option>
@@ -135,7 +135,7 @@
         <div class="bonus">
             <label>Bonus 3 - 25 points</label>
             <p>How many unique characters will there be in top 8?</p>
-            <select>
+            <select name="bonus3">
                 <option>0</option>
                 <option>1</option>
                 <option>2</option>
@@ -155,7 +155,7 @@
         <div class="bonus">
             <label>Bonus 4 - 25 points</label>
             <p>How many individual games will the winner of singles lose throughout the event?</p>
-            <select>
+            <select name="bonus4">
                 <option>0-5</option>
                 <option>6-10</option>
                 <option>10-15</option>
@@ -171,7 +171,7 @@
         </h1>
     </div>
 
-    <div class="section" style="width: 25%;">
+    <div class="section player-section" style="width: 25%;">
         <h2>Players</h2>
         <h3>
         <div class="budget-box">
@@ -181,27 +181,28 @@
             </div>
         </div>
 
-        <!-- Error message for budget -->
-        <div id="budget-error" style="display:none; color:#ff3333; font-weight:bold; text-align:center; margin:10px 0;">
-            Not enough credits to select this player or you have already selected 12 players!
-        </div>
+        
 
-        <input type="text" id="player-search" placeholder="Search players..." style= "width: 80%; font-family: 'LemonMilkMedium';">
-
-        <div class="cost-list">
-            {% for entrant in entrants %}
-            <button class="cost-card" id="select-player" type="button" 
-                data-entrant-id="{{ entrant.id }}"
-                data-gamertag="{{ entrant.participants[0].gamerTag if entrant.participants and entrant.participants[0].gamerTag else entrant.name }}"
-                data-seed="{{ entrant.seed }}"
-                data-cost="{{ entrant.cost }}">
-                <div class="name">{{ entrant.name }}</div>
-                <br>
-                <div class="info">Seed: {{ entrant.seed }}</div>
-                <br>
-                <div class="cost-badge">{{ entrant.cost }}</div>
-            </button>
-            {% endfor %}
+        <div class="player-list-container">
+            <!-- Error message for budget -->
+            <div id="budget-error" style="display:none; color:#ff3333; font-weight:bold; text-align:center; margin:10px 0;">
+                Not enough credits to select this player or you have already selected 12 players!
+            </div>
+            <input type="text" id="player-search" placeholder="Search players..." style= "width: 80%; font-family: 'LemonMilkMedium';">
+            <div class="cost-list">
+                {% for entrant in entrants %}
+                <button class="cost-card" id="select-player" type="button" 
+                    data-entrant-id="{{ entrant.id }}"
+                    data-gamertag="{{ entrant.participants[0].gamerTag if entrant.participants and entrant.participants[0].gamerTag else entrant.name }}"
+                    data-seed="{{ entrant.seed }}"
+                    data-cost="{{ entrant.cost }}">
+                    <div class="name">{{ entrant.name }}</div>
+                    <br>
+                    <div class="info">Seed: {{ entrant.seed }}</div>
+                    <div class="cost-badge">{{ entrant.cost }}</div>
+                </button>
+                {% endfor %}
+            </div>
         </div>
         </h3>
     </div>
