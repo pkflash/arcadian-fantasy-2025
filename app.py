@@ -148,7 +148,7 @@ def update_all_team_points():
         # Bonus 2: Award 25 points if user's answer matches actual game5_count
         bonus2 = team.get('bonus2')
         try:
-            if bonus2 is not None and int(bonus2) == game5_count:
+            if game5_count is not None and bonus2 is not None and int(bonus2) == game5_count:
                 total_points += 25
         except Exception as e:
             print(f"Error checking bonus2 for team {team_doc.id}: {e}")
@@ -173,7 +173,7 @@ def update_all_team_points():
         # Bonus 4: Award 25 points if user's selected range contains actual games lost
         bonus4 = team.get('bonus4')
         try:
-            if bonus4 is not None:
+            if winner_games_lost is not None and bonus4 is not None:
                 if '+' in bonus4:
                     min_val = int(bonus4.replace('+', '').replace(' ', ''))
                     if winner_games_lost >= min_val:
@@ -223,17 +223,17 @@ def fetch_top8_game5_count():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching phase groups:', data)
-        return 0
+        return None
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         print('Event not found')
-        return 0
+        return None
     # Try to find the phase group for top 8 (look for 'Top 8' in phase name or displayIdentifier)
     top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
     if not top8_pg:
         print('Top 8 phase group not found')
-        return 0
+        return None
     phasegroup_id = top8_pg['id']
     # Now fetch sets for this phase group
     query_sets = '''
@@ -259,7 +259,7 @@ def fetch_top8_game5_count():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching sets:', data)
-        return 0
+        return None
     sets = data['data']['phaseGroup']['sets']['nodes']
     # Count sets with displayScore like '3-2' or '2-3'
     game5_count = 0
@@ -304,17 +304,17 @@ def fetch_winner_games_lost():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching entrants:', data)
-        return 0
+        return None
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         print('Event not found')
-        return 0
+        return None
     entrants = event['entrants']['nodes']
     winner = next((e for e in entrants if e.get('finalPlacement') == 1), None)
     if not winner:
         print('Winner not found')
-        return 0
+        return None
     winner_id = winner['id']
     # Step 2: Fetch all sets in the event
     query_sets = '''
@@ -342,12 +342,12 @@ def fetch_winner_games_lost():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching sets:', data)
-        return 0
+        return None
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         print('Event not found (sets)')
-        return 0
+        return None
     sets = event['sets']['nodes']
     # Step 3: For each set the winner played, count games lost
     games_lost = 0
