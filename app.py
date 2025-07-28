@@ -233,25 +233,18 @@ def fetch_top8_game5_count():
         print('Event not found')
         return 0
     # Try to find the phase group for top 8 (look for 'Top 8' in phase name or displayIdentifier)
-    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
+    top8_pg = next((pg for pg in event['phaseGroups'] if pg['phase']['name'] == 'Singles Top 8'), None)
     if not top8_pg:
         print('Top 8 phase group not found')
         return 0
     phasegroup_id = top8_pg['id']
-    # Now fetch sets for this phase group
+    # Now fetch setIDs for this phase group
     query_sets = '''
     query PhaseGroupSets($phaseGroupId: ID!) {
       phaseGroup(id: $phaseGroupId) {
         sets(perPage: 50) {
           nodes {
             id
-            displayScore
-            winnerId
-            slots {
-              entrant {
-                id
-              }
-            }
           }
         }
       }
@@ -261,17 +254,53 @@ def fetch_top8_game5_count():
     response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
     data = response.json()
     if 'errors' in data or 'data' not in data:
-        print('Error fetching sets:', data)
+        print('Error fetching ID\'s:', data)
         return 0
+    
     sets = data['data']['phaseGroup']['sets']['nodes']
-    # Count sets with displayScore like '3-2' or '2-3'
+    # Finally, gather set score data from all the set ID's and count g5 sets
+
+    query_score = '''
+    query set($setId: ID!) {
+        set(id: $setId) {
+            id
+            slots {
+                id
+                standing {
+                    stats {
+                        score {
+                            label
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+    '''
     game5_count = 0
     for s in sets:
-        score = s.get('displayScore', '')
-        if not isinstance(score, str):
-            continue
-        if '3-2' in score or '2-3' in score:
+        set_id = s['id']
+
+        # Fetch match data for the given set id
+        set_response = requests.post(url, headers=headers, json={"query": query_score, "variables": {'setId': set_id}})
+        set_data = set_response.json()
+
+        # Increment game 5 count if both a 3 and a 2 are found in score data
+        three_found = False
+        two_found = False
+        for item in set_data['data']['set']['slots']:
+            score = item['standing']['stats']['score']['value']
+
+            if score != 3 and score != 2:
+                continue
+            elif score == 3:
+                three_found = True
+            else:
+                two_found = True
+        if three_found and two_found:
             game5_count += 1
+
     return game5_count
 
 def fetch_winner_games_lost():

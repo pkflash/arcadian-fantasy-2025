@@ -21,7 +21,7 @@ STARTGG_API_TOKEN = os.getenv('STARTGG_API_TOKEN')
 print(f'ENTRANT PLACINGS: {fetch_entrant_placings()}')
 
 # Print bonuses
-print(f'G5 COUNT: {fetch_top8_game5_count}\n')
-print(f'GAMES LOST BY WINNER: {fetch_winner_games_lost}')
-print(f'UNIQUE CHARACTERS: {fetch_top8_unique_characters_count}')
-print(f'THREE STOCKS: {fetch_top8_three_stock_count}')
+print(f'G5 COUNT: {fetch_top8_game5_count()}\n')
+print(f'GAMES LOST BY WINNER: {fetch_winner_games_lost()}')
+print(f'UNIQUE CHARACTERS: {fetch_top8_unique_characters_count()}')
+print(f'THREE STOCKS: {fetch_top8_three_stock_count()}')
