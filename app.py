@@ -367,7 +367,6 @@ def fetch_winner_games_lost():
     set_variables = {'eventSlug': event_slug, 'id': winner_id}
     response = requests.post(url, headers=headers, json={"query": query_sets, "variables": set_variables})
     data = response.json()
-    print(data)
     if 'errors' in data or 'data' not in data:
         print('Error fetching sets:', data)
         return 0
