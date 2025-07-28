@@ -315,16 +315,19 @@ def fetch_winner_games_lost():
         'Authorization': f'Bearer {STARTGG_API_TOKEN}',
         'Content-Type': 'application/json'
     }
-    # Step 1: Find winner's entrant ID
+    # Step 1: Find winner's user ID
     query_entrants = '''
-    query EventEntrants($tourneySlug: String!) {
+    query EventPlacings($tourneySlug: String!) {
       tournament(slug: $tourneySlug) {
         events {
           slug
-          entrants(query: {perPage: 300}) {
+          standings(query: {perPage: 300}) {
             nodes {
-              id
-              finalPlacement
+              placement
+              entrant {
+                id
+                name
+              }
             }
           }
         }
@@ -342,66 +345,72 @@ def fetch_winner_games_lost():
     if not event:
         print('Event not found')
         return 0
-    entrants = event['entrants']['nodes']
-    winner = next((e for e in entrants if e.get('finalPlacement') == 1), None)
+    entrants = event['standings']['nodes']
+    winner = next((e for e in entrants if e.get('placement') == 1), None)
     if not winner:
         print('Winner not found')
         return 0
-    winner_id = winner['id']
-    # Step 2: Fetch all sets in the event
+    winner_id = winner['entrant']['id']
+
+    # Step 2: Fetch all set id's of this player's matches
     query_sets = '''
-    query EventSets($tourneySlug: String!) {
-      tournament(slug: $tourneySlug) {
-        events {
-          slug
-          sets(perPage: 200) {
+    query EventSets($eventSlug: String!, $id: ID!) {
+      event(slug: $eventSlug) {
+          sets(perPage: 100, filters: {entrantIds: [$id]}) {
             nodes {
               id
-              slots {
-                entrant {
-                  id
-                }
-              }
-              displayScore
-              winnerId
             }
           }
-        }
       }
     }
     '''
-    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    set_variables = {'eventSlug': event_slug, 'id': winner_id}
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": set_variables})
     data = response.json()
+    print(data)
     if 'errors' in data or 'data' not in data:
         print('Error fetching sets:', data)
         return 0
-    events = data['data']['tournament']['events']
-    event = next((e for e in events if e['slug'] == event_slug), None)
-    if not event:
-        print('Event not found (sets)')
-        return 0
-    sets = event['sets']['nodes']
+    sets = data['data']['event']['sets']['nodes']
     # Step 3: For each set the winner played, count games lost
+    query_score = '''
+    query set($setId: ID!) {
+        set(id: $setId) {
+            id
+            slots {
+                id
+                entrant {
+                    id
+                }
+                standing {
+                    stats {
+                        score {
+                            label
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+    '''
+
     games_lost = 0
     for s in sets:
-        # Check if winner participated in this set
-        slot_ids = [slot['entrant']['id'] for slot in s.get('slots', []) if slot.get('entrant')]
-        if winner_id not in slot_ids:
-            continue
-        score = s.get('displayScore', '')
-        # Parse score, e.g., '3-2', '3-1', '2-3', etc.
-        import re
-        match = re.match(r"(\d+)-(\d+)", score)
-        if not match:
-            continue
-        score1, score2 = int(match.group(1)), int(match.group(2))
-        # Determine if winner was score1 or score2
-        if str(s.get('winnerId')) == str(winner_id):
-            # Winner's score is score1
-            games_lost += score2
-        else:
-            # Winner's score is score2
-            games_lost += score1
+        set_id = s['id']
+
+        # Fetch match data for the given set id
+        set_response = requests.post(url, headers=headers, json={"query": query_score, "variables": {'setId': set_id}})
+        set_data = set_response.json()
+        
+        # Add number of games taken by opponent to games_lost
+        for item in set_data['data']['set']['slots']:
+            if item['entrant']['id'] == winner_id:
+                continue
+            else:
+                score = item['standing']['stats']['score']['value']
+                games_lost += score
+
     return games_lost
 
 def fetch_top8_unique_characters_count():
