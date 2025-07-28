@@ -78,13 +78,12 @@ def fetch_entrant_placings():
       tournament(slug: $tourneySlug) {
         events {
           slug
-          entrants(query: {perPage: 300}) {
+          standings(query: {perPage: 300}) {
             nodes {
-              id
-              name
-              finalPlacement
-              participants {
-                gamerTag
+              placement
+              entrant {
+                id
+                name
               }
             }
           }
@@ -96,18 +95,22 @@ def fetch_entrant_placings():
     response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
     data = response.json()
     if 'errors' in data or 'data' not in data:
+        print("Data error")
         return {}
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
+        print("Event not found")
         return {}
-    entrants = event['entrants']['nodes']
+    entrants = event['standings']['nodes']
+
     # Map entrant id to (finalPlacement, gamerTag)
     placings = {}
     for entrant in entrants:
-        eid = entrant['id']
-        placement = entrant.get('finalPlacement')
-        gamerTag = entrant['participants'][0]['gamerTag'] if entrant['participants'] and 'gamerTag' in entrant['participants'][0] else entrant['name']
+        eid = entrant['entrant']['id']
+        placement = entrant['placement']
+        # gamerTag = entrant['participants'][0]['gamerTag'] if entrant['participants'] and 'gamerTag' in entrant['participants'][0] else entrant['name']
+        gamerTag = entrant['entrant']['name']
         placings[eid] = {'placing': placement, 'gamerTag': gamerTag}
     return placings
 
