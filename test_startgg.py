@@ -17,11 +17,31 @@ from app import *
 STARTGG_API_URL = 'https://api.start.gg/gql/alpha'
 STARTGG_API_TOKEN = os.getenv('STARTGG_API_TOKEN')
 
-# Print entrant placings
-print(f'ENTRANT PLACINGS: {fetch_entrant_placings()}')
+# # Print entrant placings
+# print(f'ENTRANT PLACINGS: {fetch_entrant_placings()}')
 
-# Print bonuses
-print(f'G5 COUNT: {fetch_top8_game5_count()}\n')
-print(f'GAMES LOST BY WINNER: {fetch_winner_games_lost()}')
-print(f'UNIQUE CHARACTERS: {fetch_top8_unique_characters_count()}')
-print(f'THREE STOCKS: {fetch_top8_three_stock_count()}')
+# # Print bonuses
+# print(f'G5 COUNT: {fetch_top8_game5_count()}\n')
+# print(f'GAMES LOST BY WINNER: {fetch_winner_games_lost()}')
+# print(f'UNIQUE CHARACTERS: {fetch_top8_unique_characters_count()}')
+# print(f'THREE STOCKS: {fetch_top8_three_stock_count()}')
+
+
+# Test for start gg placement scores
+placings = fetch_entrant_placings()
+game5_count = fetch_top8_game5_count()
+winner_games_lost = fetch_winner_games_lost()
+unique_char_count = fetch_top8_unique_characters_count()
+three_stock_count = fetch_top8_three_stock_count()
+teams_ref = db.collection('teams').stream()
+for team_doc in teams_ref:
+    team = team_doc.to_dict()
+    players = team.get('players', [])
+    total_points = 0
+    for player in players:
+        eid = player['id'] if isinstance(player, dict) else player
+
+        # FIX ME
+        placing = placings[eid]['placing']
+        points = get_points_for_placing(placing) if placing is not None else 0
+        total_points += points
