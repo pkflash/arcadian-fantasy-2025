@@ -151,7 +151,7 @@ def update_all_team_points():
         # Bonus 2: Award 25 points if user's answer matches actual game5_count
         bonus2 = team.get('bonus2')
         try:
-            if game5_count is not None and bonus2 is not None and int(bonus2) == game5_count:
+            if bonus2 is not None and int(bonus2) == game5_count:
                 total_points += 25
         except Exception as e:
             print(f"Error checking bonus2 for team {team_doc.id}: {e}")
@@ -176,7 +176,7 @@ def update_all_team_points():
         # Bonus 4: Award 25 points if user's selected range contains actual games lost
         bonus4 = team.get('bonus4')
         try:
-            if winner_games_lost is not None and bonus4 is not None:
+            if bonus4 is not None:
                 if '+' in bonus4:
                     min_val = int(bonus4.replace('+', '').replace(' ', ''))
                     if winner_games_lost >= min_val:
@@ -226,17 +226,17 @@ def fetch_top8_game5_count():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching phase groups:', data)
-        return None
+        return 0
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         print('Event not found')
-        return None
+        return 0
     # Try to find the phase group for top 8 (look for 'Top 8' in phase name or displayIdentifier)
     top8_pg = next((pg for pg in event['phaseGroups'] if pg['phase']['name'] == 'Singles Top 8'), None)
     if not top8_pg:
         print('Top 8 phase group not found')
-        return None
+        return 0
     phasegroup_id = top8_pg['id']
     # Now fetch setIDs for this phase group
     query_sets = '''
@@ -339,7 +339,7 @@ def fetch_winner_games_lost():
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching entrants:', data)
-        return None
+        return 0
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
