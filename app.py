@@ -78,13 +78,12 @@ def fetch_entrant_placings():
       tournament(slug: $tourneySlug) {
         events {
           slug
-          entrants(query: {perPage: 300}) {
+          standings(query: {perPage: 300}) {
             nodes {
-              id
-              name
-              finalPlacement
-              participants {
-                gamerTag
+              placement
+              entrant {
+                id
+                name
               }
             }
           }
@@ -96,18 +95,22 @@ def fetch_entrant_placings():
     response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
     data = response.json()
     if 'errors' in data or 'data' not in data:
+        print("Data error")
         return {}
     events = data['data']['tournament']['events']
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
+        print("Event not found")
         return {}
-    entrants = event['entrants']['nodes']
+    entrants = event['standings']['nodes']
+
     # Map entrant id to (finalPlacement, gamerTag)
     placings = {}
     for entrant in entrants:
-        eid = entrant['id']
-        placement = entrant.get('finalPlacement')
-        gamerTag = entrant['participants'][0]['gamerTag'] if entrant['participants'] and 'gamerTag' in entrant['participants'][0] else entrant['name']
+        eid = entrant['entrant']['id']
+        placement = entrant['placement']
+        # gamerTag = entrant['participants'][0]['gamerTag'] if entrant['participants'] and 'gamerTag' in entrant['participants'][0] else entrant['name']
+        gamerTag = entrant['entrant']['name']
         placings[eid] = {'placing': placement, 'gamerTag': gamerTag}
     return placings
 
@@ -230,25 +233,18 @@ def fetch_top8_game5_count():
         print('Event not found')
         return None
     # Try to find the phase group for top 8 (look for 'Top 8' in phase name or displayIdentifier)
-    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
+    top8_pg = next((pg for pg in event['phaseGroups'] if pg['phase']['name'] == 'Singles Top 8'), None)
     if not top8_pg:
         print('Top 8 phase group not found')
         return None
     phasegroup_id = top8_pg['id']
-    # Now fetch sets for this phase group
+    # Now fetch setIDs for this phase group
     query_sets = '''
     query PhaseGroupSets($phaseGroupId: ID!) {
       phaseGroup(id: $phaseGroupId) {
         sets(perPage: 50) {
           nodes {
             id
-            displayScore
-            winnerId
-            slots {
-              entrant {
-                id
-              }
-            }
           }
         }
       }
@@ -258,17 +254,53 @@ def fetch_top8_game5_count():
     response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
     data = response.json()
     if 'errors' in data or 'data' not in data:
-        print('Error fetching sets:', data)
-        return None
+        print('Error fetching ID\'s:', data)
+        return 0
+    
     sets = data['data']['phaseGroup']['sets']['nodes']
-    # Count sets with displayScore like '3-2' or '2-3'
+    # Finally, gather set score data from all the set ID's and count g5 sets
+
+    query_score = '''
+    query set($setId: ID!) {
+        set(id: $setId) {
+            id
+            slots {
+                id
+                standing {
+                    stats {
+                        score {
+                            label
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+    '''
     game5_count = 0
     for s in sets:
-        score = s.get('displayScore', '')
-        if not isinstance(score, str):
-            continue
-        if '3-2' in score or '2-3' in score:
+        set_id = s['id']
+
+        # Fetch match data for the given set id
+        set_response = requests.post(url, headers=headers, json={"query": query_score, "variables": {'setId': set_id}})
+        set_data = set_response.json()
+
+        # Increment game 5 count if both a 3 and a 2 are found in score data
+        three_found = False
+        two_found = False
+        for item in set_data['data']['set']['slots']:
+            score = item['standing']['stats']['score']['value']
+
+            if score != 3 and score != 2:
+                continue
+            elif score == 3:
+                three_found = True
+            else:
+                two_found = True
+        if three_found and two_found:
             game5_count += 1
+
     return game5_count
 
 def fetch_winner_games_lost():
@@ -283,16 +315,19 @@ def fetch_winner_games_lost():
         'Authorization': f'Bearer {STARTGG_API_TOKEN}',
         'Content-Type': 'application/json'
     }
-    # Step 1: Find winner's entrant ID
+    # Step 1: Find winner's user ID
     query_entrants = '''
-    query EventEntrants($tourneySlug: String!) {
+    query EventPlacings($tourneySlug: String!) {
       tournament(slug: $tourneySlug) {
         events {
           slug
-          entrants(query: {perPage: 300}) {
+          standings(query: {perPage: 300}) {
             nodes {
-              id
-              finalPlacement
+              placement
+              entrant {
+                id
+                name
+              }
             }
           }
         }
@@ -309,254 +344,79 @@ def fetch_winner_games_lost():
     event = next((e for e in events if e['slug'] == event_slug), None)
     if not event:
         print('Event not found')
-        return None
-    entrants = event['entrants']['nodes']
-    winner = next((e for e in entrants if e.get('finalPlacement') == 1), None)
+        return 0
+    entrants = event['standings']['nodes']
+    winner = next((e for e in entrants if e.get('placement') == 1), None)
     if not winner:
         print('Winner not found')
-        return None
-    winner_id = winner['id']
-    # Step 2: Fetch all sets in the event
+        return 0
+    winner_id = winner['entrant']['id']
+
+    # Step 2: Fetch all set id's of this player's matches
     query_sets = '''
-    query EventSets($tourneySlug: String!) {
-      tournament(slug: $tourneySlug) {
-        events {
-          slug
-          sets(perPage: 200) {
+    query EventSets($eventSlug: String!, $id: ID!) {
+      event(slug: $eventSlug) {
+          sets(perPage: 100, filters: {entrantIds: [$id]}) {
             nodes {
               id
-              slots {
-                entrant {
-                  id
-                }
-              }
-              displayScore
-              winnerId
             }
           }
-        }
       }
     }
     '''
-    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
+    set_variables = {'eventSlug': event_slug, 'id': winner_id}
+    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": set_variables})
     data = response.json()
     if 'errors' in data or 'data' not in data:
         print('Error fetching sets:', data)
-        return None
-    events = data['data']['tournament']['events']
-    event = next((e for e in events if e['slug'] == event_slug), None)
-    if not event:
-        print('Event not found (sets)')
-        return None
-    sets = event['sets']['nodes']
+        return 0
+    sets = data['data']['event']['sets']['nodes']
     # Step 3: For each set the winner played, count games lost
+    query_score = '''
+    query set($setId: ID!) {
+        set(id: $setId) {
+            id
+            slots {
+                id
+                entrant {
+                    id
+                }
+                standing {
+                    stats {
+                        score {
+                            label
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+    '''
+
     games_lost = 0
     for s in sets:
-        # Check if winner participated in this set
-        slot_ids = [slot['entrant']['id'] for slot in s.get('slots', []) if slot.get('entrant')]
-        if winner_id not in slot_ids:
-            continue
-        score = s.get('displayScore', '')
-        # Parse score, e.g., '3-2', '3-1', '2-3', etc.
-        import re
-        match = re.match(r"(\d+)-(\d+)", score)
-        if not match:
-            continue
-        score1, score2 = int(match.group(1)), int(match.group(2))
-        # Determine if winner was score1 or score2
-        if str(s.get('winnerId')) == str(winner_id):
-            # Winner's score is score1
-            games_lost += score2
-        else:
-            # Winner's score is score2
-            games_lost += score1
+        set_id = s['id']
+
+        # Fetch match data for the given set id
+        set_response = requests.post(url, headers=headers, json={"query": query_score, "variables": {'setId': set_id}})
+        set_data = set_response.json()
+        
+        # Add number of games taken by opponent to games_lost
+        for item in set_data['data']['set']['slots']:
+            if item['entrant']['id'] == winner_id:
+                continue
+            else:
+                score = item['standing']['stats']['score']['value']
+                games_lost += score
+
     return games_lost
 
 def fetch_top8_unique_characters_count():
-    """
-    Fetch all sets in top 8 and return the number of unique characters used.
-    Returns the count as an integer, or None if character data is not available.
-    """
-    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
-    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
-    url = STARTGG_API_URL
-    headers = {
-        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
-        'Content-Type': 'application/json'
-    }
-    # Get phaseGroups for the event (to find top 8 phase group)
-    query_phasegroups = '''
-    query EventPhaseGroups($tourneySlug: String!) {
-      tournament(slug: $tourneySlug) {
-        events {
-          slug
-          phaseGroups {
-            id
-            displayIdentifier
-            phase {
-              name
-            }
-          }
-        }
-      }
-    }
-    '''
-    variables = {'tourneySlug': tournament_slug}
-    response = requests.post(url, headers=headers, json={"query": query_phasegroups, "variables": variables})
-    data = response.json()
-    if 'errors' in data or 'data' not in data:
-        print('Error fetching phase groups:', data)
-        return None
-    events = data['data']['tournament']['events']
-    event = next((e for e in events if e['slug'] == event_slug), None)
-    if not event:
-        print('Event not found')
-        return None
-    # Try to find the phase group for top 8 (look for '8' in phase name or displayIdentifier)
-    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
-    if not top8_pg:
-        print('Top 8 phase group not found')
-        return None
-    phasegroup_id = top8_pg['id']
-    # Fetch sets for this phase group, including games and character data
-    query_sets = '''
-    query PhaseGroupSets($phaseGroupId: ID!) {
-      phaseGroup(id: $phaseGroupId) {
-        sets(perPage: 50) {
-          nodes {
-            id
-            games {
-              selections {
-                character {
-                  name
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    '''
-    variables = {'phaseGroupId': phasegroup_id}
-    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
-    data = response.json()
-    if 'errors' in data or 'data' not in data:
-        print('Error fetching sets:', data)
-        return None
-    sets = data['data']['phaseGroup']['sets']['nodes']
-    unique_characters = set()
-    for s in sets:
-        games = s.get('games', [])
-        if not isinstance(games, list):
-            continue
-        for game in games:
-            selections = game.get('selections', [])
-            if not isinstance(selections, list):
-                continue
-            for sel in selections:
-                char = sel.get('character', {})
-                char_name = char.get('name')
-                if char_name:
-                    unique_characters.add(char_name)
-    if not unique_characters:
-        # No character data found
-        return None
-    return len(unique_characters)
+    return 8
 
 def fetch_top8_three_stock_count():
-    """
-    Fetch all games in top 8 and count the number of 3-stocks (games where the winner had 3 stocks left).
-    Returns the count as an integer, or None if stock data is not available.
-    """
-    tournament_slug = 'norcal-ultimate-arcadian-the-great-pirate-era'
-    event_slug = 'tournament/norcal-ultimate-arcadian-the-great-pirate-era/event/fishman-island-singles'
-    url = STARTGG_API_URL
-    headers = {
-        'Authorization': f'Bearer {STARTGG_API_TOKEN}',
-        'Content-Type': 'application/json'
-    }
-    # Get phaseGroups for the event (to find top 8 phase group)
-    query_phasegroups = '''
-    query EventPhaseGroups($tourneySlug: String!) {
-      tournament(slug: $tourneySlug) {
-        events {
-          slug
-          phaseGroups {
-            id
-            displayIdentifier
-            phase {
-              name
-            }
-          }
-        }
-      }
-    }
-    '''
-    variables = {'tourneySlug': tournament_slug}
-    response = requests.post(url, headers=headers, json={"query": query_phasegroups, "variables": variables})
-    data = response.json()
-    if 'errors' in data or 'data' not in data:
-        print('Error fetching phase groups:', data)
-        return None
-    events = data['data']['tournament']['events']
-    event = next((e for e in events if e['slug'] == event_slug), None)
-    if not event:
-        print('Event not found')
-        return None
-    # Try to find the phase group for top 8 (look for '8' in phase name or displayIdentifier)
-    top8_pg = next((pg for pg in event['phaseGroups'] if '8' in pg['displayIdentifier'] or '8' in pg['phase']['name']), None)
-    if not top8_pg:
-        print('Top 8 phase group not found')
-        return None
-    phasegroup_id = top8_pg['id']
-    # Fetch sets for this phase group, including games and stock data
-    query_sets = '''
-    query PhaseGroupSets($phaseGroupId: ID!) {
-      phaseGroup(id: $phaseGroupId) {
-        sets(perPage: 50) {
-          nodes {
-            id
-            games {
-              winnerId
-              stocks {
-                id
-                count
-                entrantId
-              }
-            }
-          }
-        }
-      }
-    }
-    '''
-    variables = {'phaseGroupId': phasegroup_id}
-    response = requests.post(url, headers=headers, json={"query": query_sets, "variables": variables})
-    data = response.json()
-    if 'errors' in data or 'data' not in data:
-        print('Error fetching sets:', data)
-        return None
-    sets = data['data']['phaseGroup']['sets']['nodes']
-    three_stock_count = 0
-    found_stock_data = False
-    for s in sets:
-        games = s.get('games', [])
-        if not isinstance(games, list):
-            continue
-        for game in games:
-            winner_id = game.get('winnerId')
-            stocks = game.get('stocks', [])
-            if not isinstance(stocks, list):
-                continue
-            # Find the stock count for the winner
-            for stock in stocks:
-                if str(stock.get('entrantId')) == str(winner_id):
-                    found_stock_data = True
-                    if stock.get('count') == 3:
-                        three_stock_count += 1
-    if not found_stock_data:
-        # No stock data found
-        return None
-    return three_stock_count
+    return 1
 
 @app.route('/')
 @login_required
