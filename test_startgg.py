@@ -41,6 +41,8 @@ for team_doc in teams_ref:
     for player in players:
         eid = player['id'] if isinstance(player, dict) else player
         # FIX ME
-        placing = placings[int(eid)]
+        placing = placings[int(eid)]['placing']
         points = get_points_for_placing(placing) if placing is not None else 0
         total_points += points
+    
+    print(total_points)
