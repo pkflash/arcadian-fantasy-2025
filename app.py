@@ -120,15 +120,26 @@ def update_all_team_points():
     winner_games_lost = fetch_winner_games_lost()
     unique_char_count = fetch_top8_unique_characters_count()
     three_stock_count = fetch_top8_three_stock_count()
+
+    print(f"Fetched placings: {placings}")
+    print(f"Game 5 count: {game5_count}")
+    print(f"Winner games lost: {winner_games_lost}")
+    print(f"Unique character count: {unique_char_count}")
+    print(f"Three stock count: {three_stock_count}")
+
     teams_ref = db.collection('teams').stream()
     for team_doc in teams_ref:
         team = team_doc.to_dict()
         players = team.get('players', [])
         total_points = 0
+        print(f"\nProcessing team: {team.get('name', 'Unknown')}")
+        
         for player in players:
             eid = player['id'] if isinstance(player, dict) else player
-            placing = placings.get(eid, {}).get('placing')
+            # FIX ME
+            placing = placings[int(eid)]['placing']
             points = get_points_for_placing(placing) if placing is not None else 0
+            print(f"    Points earned: {points}")
             total_points += points
         # Bonus 1: Award 25 points if user's selected range or 21+ matches three_stock_count
         bonus1 = team.get('bonus1')
