@@ -33,15 +33,34 @@ game5_count = fetch_top8_game5_count()
 winner_games_lost = fetch_winner_games_lost()
 unique_char_count = fetch_top8_unique_characters_count()
 three_stock_count = fetch_top8_three_stock_count()
+
+print(f"Fetched placings: {placings}")
+print(f"Game 5 count: {game5_count}")
+print(f"Winner games lost: {winner_games_lost}")
+print(f"Unique character count: {unique_char_count}")
+print(f"Three stock count: {three_stock_count}")
+
 teams_ref = db.collection('teams').stream()
 for team_doc in teams_ref:
     team = team_doc.to_dict()
     players = team.get('players', [])
     total_points = 0
+    print(f"\nProcessing team: {team.get('name', 'Unknown')}")
+    
     for player in players:
         eid = player['id'] if isinstance(player, dict) else player
-
-        # FIX ME
-        placing = placings[eid]['placing']
+        print(f"  Player EID: {eid}")
+        
+        # FIXED: Use safe dictionary access like in app.py
+        player_placing_data = placings.get(eid, {})
+        placing = player_placing_data.get('placing')
+        gamer_tag = player_placing_data.get('gamerTag', 'Unknown')
+        
+        print(f"    Player data: {player_placing_data}")
+        print(f"    Placing: {placing}")
+        
         points = get_points_for_placing(placing) if placing is not None else 0
+        print(f"    Points earned: {points}")
         total_points += points
+    
+    print(f"  Total points for team: {total_points}")
