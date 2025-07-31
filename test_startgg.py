@@ -49,18 +49,10 @@ for team_doc in teams_ref:
     
     for player in players:
         eid = player['id'] if isinstance(player, dict) else player
-        print(f"  Player EID: {eid}")
-        
-        # FIXED: Use safe dictionary access like in app.py
-        player_placing_data = placings.get(eid, {})
-        placing = player_placing_data.get('placing')
-        gamer_tag = player_placing_data.get('gamerTag', 'Unknown')
-        
-        print(f"    Player data: {player_placing_data}")
-        print(f"    Placing: {placing}")
-        
+        # FIX ME
+        placing = placings[int(eid)]['placing']
         points = get_points_for_placing(placing) if placing is not None else 0
         print(f"    Points earned: {points}")
         total_points += points
     
-    print(f"  Total points for team: {total_points}")
+    print(total_points)
